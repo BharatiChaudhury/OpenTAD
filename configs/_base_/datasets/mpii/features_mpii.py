@@ -1,10 +1,10 @@
-dataset_type = "MPII_Group_Interaction"
+dataset_type = "ThumosSlidingDataset"
 annotation_path = "/srv/storage/stars@storage3.sophia.grid5000.fr/bchaudhu/projects/OpenTAD/tools/mpii_tridet.json"
 class_map = "/srv/storage/stars@storage3.sophia.grid5000.fr/bchaudhu/projects/OpenTAD/tools/category_idx.txt"
 data_path = "/srv/storage/stars@storage3.sophia.grid5000.fr/bchaudhu/projects/Introducing-Gating-and-Context-into-Temporal-Action-Detection/features_npy_v2_check"
 block_list = None
 
-window_size = 16
+window_size = 128
 dataset = dict(
     train=dict(
         type=dataset_type,
@@ -15,7 +15,7 @@ dataset = dict(
         data_path=data_path,
         filter_gt=False,
         # mpii dataloader setting
-        feature_stride=32,
+        feature_stride=1,
         sample_stride=1,  # 1x4=4
         window_size=window_size,
         window_overlap_ratio=0.25,
@@ -59,7 +59,7 @@ dataset = dict(
         test_mode=True,
         # thumos dataloader setting
         feature_stride=1,
-        sample_stride=5,  # 1x4=4
+        sample_stride=1,  # 1x4=4
         window_size=window_size,
         window_overlap_ratio=0.5,
         pipeline=[

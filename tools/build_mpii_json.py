@@ -44,6 +44,8 @@ def process_file(fname, subset):
 
     return video_id, {
         "duration": float(duration),
+        "frame": int(T), 
+        "fps": FPS / STRIDE,
         "subset": subset,
         "annotations": [
             {

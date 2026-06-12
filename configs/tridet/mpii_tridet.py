@@ -7,15 +7,21 @@ model = dict(
     projection=dict(
         in_channels=768,
         out_channels=256,
-        sgp_win_size=[3, 3, 3],
+        sgp_win_size=[3, 3, 3, 3, 3, 3],
         sgp_mlp_dim=256,
         use_abs_pe=True,
-        max_seq_len=64,
+        max_seq_len=256,
         k=1.2,
         init_conv_vars=0.1,
         input_noise=0.2,
     ),
-    neck=dict(in_channels=256, out_channels=256),
+    #neck=dict(in_channels=256, out_channels=256),
+    neck=dict(
+    type="MambaHybridNeck",
+    in_channels=256,
+    out_channels=256,
+    num_levels=6,
+    ),
     rpn_head=dict(
         in_channels=256,
         feat_channels=256,
@@ -37,7 +43,7 @@ solver = dict(
 )
 
 optimizer = dict(type="AdamW", lr=1e-4, weight_decay=0.03, paramwise=True)
-scheduler = dict(type="LinearWarmupCosineAnnealingLR", warmup_epoch=7, max_epoch=11, eta_min=5e-4)
+scheduler = dict(type="LinearWarmupCosineAnnealingLR", warmup_epoch=5, max_epoch=30, eta_min=5e-4)
 
 inference = dict(load_from_raw_predictions=False, save_raw_prediction=False)
 post_processing = dict(

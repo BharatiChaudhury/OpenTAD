@@ -2,8 +2,8 @@ model = dict(
     type="VideoMambaSuite",
     projection=dict(
         type="CausalProj",
-        in_channels=2048,
-        out_channels=512,
+        in_channels=768,
+        out_channels=256,
         arch=(2, 2, 5),  # layers in embed / stem / branch
         conv_cfg=dict(kernel_size=3),
         norm_cfg=dict(type="LN"),
@@ -22,7 +22,7 @@ model = dict(
     ),
     rpn_head=dict(
         type="ActionFormerHead",
-        num_classes=20,
+        num_classes=19,
         in_channels=512,
         feat_channels=512,
         num_convs=2,

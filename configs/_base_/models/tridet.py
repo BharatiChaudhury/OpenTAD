@@ -18,10 +18,10 @@ model = dict(
         input_noise=0.0,
     ),
     neck=dict(
-        type="FPNIdentity",
-        in_channels=512,
-        out_channels=512,
-        num_levels=6,
+    type="MambaHybridNeck",
+    in_channels=256,
+    out_channels=256,
+    num_levels=6,
     ),
     rpn_head=dict(
         type="TriDetHead",

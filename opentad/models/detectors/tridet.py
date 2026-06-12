@@ -202,6 +202,13 @@ class TriDet(SingleStageDetector):
                 elif pn.endswith("rel_pe"):
                     # corner case for relative position encoding
                     no_decay.add(fpn)
+                                # Mamba SSM parameters
+                elif "A_log" in pn or pn.endswith("D"):
+                    no_decay.add(fpn)
+
+                # Transformer attention projection weights
+                elif "in_proj_weight" in pn:
+                    decay.add(fpn)
 
         # validate that we considered every parameter
         param_dict = {pn: p for pn, p in self.named_parameters() if not pn.startswith("backbone")}

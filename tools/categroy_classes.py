@@ -40,7 +40,7 @@ with open(OUTPUT_PATH, "w") as f:
 
     for idx, label in enumerate(labels):
 
-        f.write(f"{idx} {label}\n")
+        f.write(f"{label}\n")
 
 print("Created:", OUTPUT_PATH)
 

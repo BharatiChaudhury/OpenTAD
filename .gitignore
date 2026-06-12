@@ -121,3 +121,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+OAR.*
+mpii_tridet.json
+category_idx.txt
