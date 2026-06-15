@@ -30,7 +30,11 @@ echo "Python used:"
 which python
 #pip install wheel setuptools ninja
 #pip install triton==2.0.0
-pip install mamba-ssm==1.2.0.post1 --no-build-isolation
+pip uninstall -y mamba-ssm causal-conv1d
+pip install mamba-ssm==1.1.1 --no-build-isolation
+pip install ninja packaging
+pip install flash-attn==2.5.8 --no-build-isolation
+pip install causal-conv1d==1.1.1 --no-build-isolation
 #pip install --no-build-isolation -r requirements.txt
 echo "===== JOB START ====="
 
@@ -43,8 +47,10 @@ python -c "import nms_1d_cpu; print('nms ok')"
 python -c "import Align1D; print('align ok')"
 
 python -c "from mamba_ssm import Mamba; print('mamba ok')"
+python -c "from flash_attn import flash_attn_qkvpacked_func; print('flashattn ok')"
+python -c "import causal_conv1d_cuda; print('causal conv ok')"
 #torchrun --standalone --nproc_per_node=1 tools/train.py configs/tridet/mpii_tridet.py
-torchrun --standalone --nproc_per_node=1 tools/train.py configs/causaltad/mpii_groupinteraction_videomaev2.py
+MASTER_PORT=29513 torchrun --standalone --nproc_per_node=1 tools/train.py configs/causaltad/mpii_groupinteraction_videomaev2.py
 echo "===== DONE ====="
 
 date

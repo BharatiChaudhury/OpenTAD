@@ -9,8 +9,8 @@ from ..bricks import ConvModule, AffineDropPath
 from ..builder import PROJECTIONS
 
 try:
-    from mamba_ssm.ops.selective_scan_interface import mamba_inner_fn_no_out_proj
-
+    #from mamba_ssm.ops.selective_scan_interface import mamba_inner_fn_no_out_proj
+    from mamba_ssm import Mamba
     MAMBA_AVAILABLE = True
 except ImportError:
     MAMBA_AVAILABLE = False
@@ -253,7 +253,7 @@ class MixtureCausalBlock(nn.Module):
         self.d_inner = int(self.expand * self.d_model)
         self.dt_rank = math.ceil(self.d_model / 16) if dt_rank == "auto" else dt_rank
 
-        self.in_proj = nn.Linear(self.d_model, self.d_inner * 2 * 4, bias=bias)
+        self.in_proj = nn.Linear(self.d_model, self.d_inner * 4, bias=bias)
 
         self.conv1d = nn.Conv1d(
             in_channels=self.d_inner,
@@ -307,57 +307,108 @@ class MixtureCausalBlock(nn.Module):
         # transformer
         self.qkv = nn.Conv1d(self.d_inner, self.d_inner * 3, kernel_size=3, padding=1, groups=self.d_inner)
         self.num_heads = num_head
-
-        self.out_proj = nn.Linear(self.d_inner * 4, self.d_model, bias=bias)
+        from mamba_ssm import Mamba 
+        #self.mamba = Mamba( d_model=self.d_inner, d_state=self.d_state, d_conv=self.d_conv, expand=1, )
+        self.mamba = Mamba( d_model=self.d_inner, d_state=self.d_state, d_conv=self.d_conv, expand=1, )
+        self.out_proj = nn.Linear(self.d_inner * 2, self.d_model, bias=bias)
 
     def forward(self, hidden_states):
         """
         hidden_states: (B, L, D)
-        Returns: same shape as hidden_states
         """
-        batch, seqlen, dim = hidden_states.shape
 
-        # We do matmul and transpose BLH -> HBL at the same time
-        xz = rearrange(
-            self.in_proj.weight @ rearrange(hidden_states, "b l d -> d (b l)"),
-            "d (b l) -> b d l",
-            l=seqlen,
+        B, L, D = hidden_states.shape
+
+        # project
+        xz = self.in_proj(hidden_states)  # (B, L, inner*8)
+
+        xz_f, xz_b = torch.chunk(xz, 2, dim=-1)
+
+        # ---------------------------
+        # MAMBA BRANCH
+        # ---------------------------
+        x_mamba, z_mamba = torch.chunk(xz_f, 2, dim=-1)
+
+        #x_mamba = x.transpose(1, 2)
+        x_mamba = self.mamba(x_mamba) ## Mamba Expects [B, L, C]
+        #x_mamba = x_mamba.transpose(1, 2)
+
+        out_mamba = x_mamba * F.silu(z_mamba)
+
+        # ---------------------------
+        # TRANSFORMER BRANCH
+        # ---------------------------
+        x_t, z_t = torch.chunk(xz_b, 2, dim=-1)
+
+        x_t = x_t.transpose(1, 2)
+
+        qkv = self.qkv(x_t).transpose(1, 2)
+        qkv = qkv.reshape(B, L, 3, self.num_heads, -1)
+
+        x_t = flash_attn_qkvpacked_func(
+            qkv,
+            deterministic=True,
+            causal=True,
         )
-        if self.in_proj.bias is not None:
-            xz = xz + rearrange(self.in_proj.bias.to(dtype=xz.dtype), "d -> d 1")
 
-        xz_f, xz_b = torch.chunk(xz, 2, dim=1)  # (B, D, L)
-        xz = torch.cat([xz_f, xz_b.flip([-1])], dim=0)
-        xz, xz_t = torch.chunk(xz, 2, dim=1)
-
-        # causal conv1d -> ssm
-        A = -torch.exp(self.A_log.float())  # (d_inner, d_state)
-        # In the backward pass we write dx and dz next to each other to avoid torch.cat
-        out = mamba_inner_fn_no_out_proj(
-            xz,
-            self.conv1d.weight,
-            self.conv1d.bias,
-            self.x_proj.weight,
-            self.dt_proj.weight,
-            A,
-            None,  # input-dependent B
-            None,  # input-dependent C
-            self.D.float(),
-            delta_bias=self.dt_proj.bias.float(),
-            delta_softplus=True,
-        )
-
-        # causal conv1d -> transformer
-        x_t, z_t = torch.chunk(xz_t, 2, dim=1)
-        B, _, L = x_t.shape
-        qkv = self.qkv(x_t).transpose(1, 2).reshape(B, L, 3, self.num_heads, -1)
-        x_t = flash_attn_qkvpacked_func(qkv, deterministic=True, causal=True)
-        x_t = x_t.reshape(B, L, -1).transpose(1, 2)  # (B, D, L)
+        x_t = x_t.reshape(B, L, -1)
 
         out_t = x_t * F.silu(z_t)
 
-        out = torch.cat([out, out_t], dim=1)
-        out = out.chunk(2)
-        out = torch.cat([out[0], out[1].flip([-1])], dim=1)
-        out = F.linear(rearrange(out, "b d l -> b l d"), self.out_proj.weight, self.out_proj.bias)
+        # fuse
+        out = torch.cat([out_mamba, out_t], dim=-1)
+
+        out = self.out_proj(out)
+
         return out
+
+        # """
+        # hidden_states: (B, L, D)
+        # Returns: same shape as hidden_states
+        # """
+        # batch, seqlen, dim = hidden_states.shape
+
+        # # We do matmul and transpose BLH -> HBL at the same time
+        # xz = rearrange(
+        #     self.in_proj.weight @ rearrange(hidden_states, "b l d -> d (b l)"),
+        #     "d (b l) -> b d l",
+        #     l=seqlen,
+        # )
+        # if self.in_proj.bias is not None:
+        #     xz = xz + rearrange(self.in_proj.bias.to(dtype=xz.dtype), "d -> d 1")
+
+        # xz_f, xz_b = torch.chunk(xz, 2, dim=1)  # (B, D, L)
+        # xz = torch.cat([xz_f, xz_b.flip([-1])], dim=0)
+        # xz, xz_t = torch.chunk(xz, 2, dim=1)
+
+        # # causal conv1d -> ssm
+        # A = -torch.exp(self.A_log.float())  # (d_inner, d_state)
+        # # In the backward pass we write dx and dz next to each other to avoid torch.cat
+        # out = mamba_inner_fn_no_out_proj(
+        #     xz,
+        #     self.conv1d.weight,
+        #     self.conv1d.bias,
+        #     self.x_proj.weight,
+        #     self.dt_proj.weight,
+        #     A,
+        #     None,  # input-dependent B
+        #     None,  # input-dependent C
+        #     self.D.float(),
+        #     delta_bias=self.dt_proj.bias.float(),
+        #     delta_softplus=True,
+        # )
+
+        # # causal conv1d -> transformer
+        # x_t, z_t = torch.chunk(xz_t, 2, dim=1)
+        # B, _, L = x_t.shape
+        # qkv = self.qkv(x_t).transpose(1, 2).reshape(B, L, 3, self.num_heads, -1)
+        # x_t = flash_attn_qkvpacked_func(qkv, deterministic=True, causal=True)
+        # x_t = x_t.reshape(B, L, -1).transpose(1, 2)  # (B, D, L)
+
+        # out_t = x_t * F.silu(z_t)
+
+        # out = torch.cat([out, out_t], dim=1)
+        # out = out.chunk(2)
+        # out = torch.cat([out[0], out[1].flip([-1])], dim=1)
+        # out = F.linear(rearrange(out, "b d l -> b l d"), self.out_proj.weight, self.out_proj.bias)
+        # return out

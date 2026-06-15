@@ -16,15 +16,15 @@ model = dict(
     ),
     neck=dict(
         type="FPNIdentity",
-        in_channels=512,
-        out_channels=512,
+        in_channels=256,
+        out_channels=256,
         num_levels=6,
     ),
     rpn_head=dict(
         type="ActionFormerHead",
         num_classes=19,
-        in_channels=512,
-        feat_channels=512,
+        in_channels=256,
+        feat_channels=256,
         num_convs=2,
         cls_prior_prob=0.01,
         prior_generator=dict(
