@@ -50,7 +50,8 @@ python -c "from mamba_ssm import Mamba; print('mamba ok')"
 python -c "from flash_attn import flash_attn_qkvpacked_func; print('flashattn ok')"
 python -c "import causal_conv1d_cuda; print('causal conv ok')"
 #torchrun --standalone --nproc_per_node=1 tools/train.py configs/tridet/mpii_tridet.py
-MASTER_PORT=29513 torchrun --standalone --nproc_per_node=1 tools/train.py configs/causaltad/mpii_groupinteraction_videomaev2.py
+#MASTER_PORT=29513 torchrun --standalone --nproc_per_node=1 tools/train.py configs/causaltad/mpii_groupinteraction_videomaev2.py
+MASTER_PORT=29513 torchrun --standalone --nproc_per_node=1 tools/train.py configs/tridet/mpii_tridet.py
 echo "===== DONE ====="
 
 date

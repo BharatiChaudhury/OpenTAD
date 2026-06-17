@@ -33,3 +33,28 @@ Python 3.10.8
 (venv) bchaudhu@fsophia:/srv/storage/stars@storage3.sophia.grid5000.fr/bchaudhu/projects/OpenTAD$                    
 pip install torch==2.0.1 torchvision==0.15.2 \
 --index-url https://download.pytorch.org/whl/cu118
+
+For causal-tad : 
+At epoch 50:
+Average-mAP: 24.88 (%)
+mAP at tIoU 0.30 is 26.44%
+mAP at tIoU 0.40 is 25.22%
+mAP at tIoU 0.50 is 24.43%
+mAP at tIoU 0.60 is 24.20%
+mAP at tIoU 0.70 is 24.12%
+
+At epoch 17:
+Average-mAP: 27.18 (%)
+mAP at tIoU 0.30 is 28.87%
+mAP at tIoU 0.40 is 27.55%
+mAP at tIoU 0.50 is 26.74%
+mAP at tIoU 0.60 is 26.36%
+mAP at tIoU 0.70 is 26.36%
+
+Mamba + ETAD-LSTM:
+2026-06-16 18:52:57 Train INFO: Average-mAP: 27.02 (%)
+2026-06-16 18:52:57 Train INFO: mAP at tIoU 0.30 is 28.15%
+2026-06-16 18:52:57 Train INFO: mAP at tIoU 0.40 is 28.10%
+2026-06-16 18:52:57 Train INFO: mAP at tIoU 0.50 is 28.09%
+2026-06-16 18:52:57 Train INFO: mAP at tIoU 0.60 is 26.94%
+2026-06-16 18:52:57 Train INFO: mAP at tIoU 0.70 is 23.80%
