@@ -7,13 +7,13 @@ model = dict(
     projection=dict(
         in_channels=768,
         out_channels=256,
-        sgp_win_size=[3, 3, 3, 3, 3, 3],
+        sgp_win_size=[1, 1, 1, 1, 1, 1],
+        k=5,
         sgp_mlp_dim=256,
-        use_abs_pe=True,
+        use_abs_pe=False,
         max_seq_len=256,
-        k=1.2,
-        init_conv_vars=0.1,
-        input_noise=0.2,
+        init_conv_vars=0,
+        input_noise=0.0,
     ),
     #neck=dict(in_channels=256, out_channels=256),
     neck=dict(
@@ -25,13 +25,12 @@ model = dict(
     rpn_head=dict(
         in_channels=256,
         feat_channels=256,
-        kernel_size=3,
-        boundary_kernel_size=1,
+        boundary_kernel_size=3,
         num_classes=19,
         label_smoothing=0.1,
         loss_normalizer=400,
         iou_weight_power=1,
-        num_bins=8,
+        num_bins=16
     ),
 )
 solver = dict(

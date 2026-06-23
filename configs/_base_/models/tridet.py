@@ -17,6 +17,12 @@ model = dict(
         max_seq_len=2304,
         input_noise=0.0,
     ),
+    # neck=dict(
+    #     type="FPNIdentity",
+    #     in_channels=512,
+    #     out_channels=512,
+    #     num_levels=6,
+    # ),
     neck=dict(
     type="MambaHybridNeck",
     in_channels=256,

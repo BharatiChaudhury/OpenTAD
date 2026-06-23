@@ -175,7 +175,7 @@ class TriDet(SingleStageDetector):
         # see https://github.com/karpathy/minGPT/blob/master/mingpt/model.py#L134
         decay = set()
         no_decay = set()
-        whitelist_weight_modules = (nn.Linear, nn.Conv1d)
+        whitelist_weight_modules = (nn.LSTM,nn.Linear, nn.Conv1d)
         blacklist_weight_modules = (nn.LayerNorm, nn.GroupNorm)
 
         # loop over all modules / params
@@ -190,6 +190,11 @@ class TriDet(SingleStageDetector):
                 if pn.endswith("bias"):
                     # all biases will not be decayed
                     no_decay.add(fpn)
+                elif isinstance(m, nn.LSTM):
+                    if "weight" in pn:
+                        decay.add(fpn)
+                    elif "bias" in pn:
+                        no_decay.add(fpn)
                 elif pn.endswith("weight") and isinstance(m, whitelist_weight_modules):
                     # weights of whitelist modules will be weight decayed
                     decay.add(fpn)
